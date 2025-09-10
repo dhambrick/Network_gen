@@ -1,0 +1,86 @@
+# Network Designer Requirements
+# Managed by uv - https://github.com/astral-sh/uv
+# Python 3.7+ required
+
+# ============================================
+# Core Runtime Dependencies
+# ============================================
+
+# Kivy - Modern UI framework
+kivy>=2.2.0
+
+# Optional: Material Design components for Kivy
+kivymd>=1.1.0
+
+# ============================================
+# System Dependencies for Kivy
+# ============================================
+# Kivy requires system packages depending on platform:
+#
+# Ubuntu/Debian:
+#   sudo apt-get update
+#   sudo apt-get install -y \
+#     python3-pip \
+#     build-essential \
+#     git \
+#     python3-dev \
+#     ffmpeg \
+#     libsdl2-dev \
+#     libsdl2-image-dev \
+#     libsdl2-mixer-dev \
+#     libsdl2-ttf-dev \
+#     libportmidi-dev \
+#     libswscale-dev \
+#     libavformat-dev \
+#     libavcodec-dev \
+#     zlib1g-dev \
+#     libgstreamer1.0-dev \
+#     gstreamer1.0-plugins-base \
+#     gstreamer1.0-plugins-good
+#
+# Fedora/RHEL:
+#   sudo dnf install -y \
+#     python3-devel \
+#     SDL2-devel \
+#     SDL2_image-devel \
+#     SDL2_mixer-devel \
+#     SDL2_ttf-devel \
+#     gstreamer1-plugins-base \
+#     gstreamer1-plugins-good
+#
+# Arch Linux:
+#   sudo pacman -S \
+#     python-pip \
+#     sdl2 \
+#     sdl2_image \
+#     sdl2_mixer \
+#     sdl2_ttf \
+#     gstreamer \
+#     gst-plugins-base \
+#     gst-plugins-good
+#
+# macOS:
+#   brew install \
+#     sdl2 \
+#     sdl2_image \
+#     sdl2_ttf \
+#     sdl2_mixer \
+#     gstreamer \
+#     pkg-config
+#
+# Windows:
+#   Kivy provides wheels with dependencies included
+#   Just install with: pip install kivy
+
+# ============================================
+# Installation with uv
+# ============================================
+# Quick install:
+#   uv pip install -r requirements.txt
+#
+# Install with dev dependencies:
+#   uv pip install -r requirements.txt -r requirements-dev.txt
+#
+# Create virtual environment and install:
+#   uv venv
+#   uv pip install -r requirements.txt
