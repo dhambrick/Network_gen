@@ -106,45 +106,94 @@ check_python() {
     fi
 }
 
-# Function to check tkinter
-check_tkinter() {
-    echo -e "${YELLOW}Checking tkinter installation...${NC}"
+# Function to install Kivy dependencies
+install_kivy_deps() {
+    echo -e "${YELLOW}Installing Kivy system dependencies...${NC}"
     
-    # Try to import tkinter using uv run
-    if uv run python -c "import tkinter" 2>/dev/null; then
-        echo -e "${GREEN}✓ tkinter is installed${NC}"
+    case $OS in
+        linux)
+            if [[ "$DISTRO" == "Ubuntu" ]] || [[ "$DISTRO" == "Debian" ]]; then
+                echo -e "${YELLOW}Installing dependencies for Ubuntu/Debian...${NC}"
+                sudo apt-get update
+                sudo apt-get install -y \
+                    python3-pip \
+                    build-essential \
+                    git \
+                    python3-dev \
+                    ffmpeg \
+                    libsdl2-dev \
+                    libsdl2-image-dev \
+                    libsdl2-mixer-dev \
+                    libsdl2-ttf-dev \
+                    libportmidi-dev \
+                    libswscale-dev \
+                    libavformat-dev \
+                    libavcodec-dev \
+                    zlib1g-dev \
+                    libgstreamer1.0-dev \
+                    gstreamer1.0-plugins-base \
+                    gstreamer1.0-plugins-good
+            elif [[ "$DISTRO" == "Fedora" ]] || [[ "$DISTRO" == "RedHat" ]]; then
+                echo -e "${YELLOW}Installing dependencies for Fedora/RHEL...${NC}"
+                sudo dnf install -y \
+                    python3-devel \
+                    SDL2-devel \
+                    SDL2_image-devel \
+                    SDL2_mixer-devel \
+                    SDL2_ttf-devel \
+                    gstreamer1-plugins-base \
+                    gstreamer1-plugins-good
+            elif [[ "$DISTRO" == "Arch" ]]; then
+                echo -e "${YELLOW}Installing dependencies for Arch Linux...${NC}"
+                sudo pacman -S --noconfirm \
+                    python-pip \
+                    sdl2 \
+                    sdl2_image \
+                    sdl2_mixer \
+                    sdl2_ttf \
+                    gstreamer \
+                    gst-plugins-base \
+                    gst-plugins-good
+            else
+                echo -e "${YELLOW}Please install SDL2 and GStreamer dependencies manually${NC}"
+                echo "Or run: ./install_kivy_deps.sh"
+            fi
+            ;;
+        macos)
+            echo -e "${YELLOW}Installing dependencies for macOS...${NC}"
+            if command -v brew &> /dev/null; then
+                brew install \
+                    sdl2 \
+                    sdl2_image \
+                    sdl2_ttf \
+                    sdl2_mixer \
+                    gstreamer \
+                    pkg-config
+            else
+                echo -e "${RED}Homebrew not found. Please install it first:${NC}"
+                echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                exit 1
+            fi
+            ;;
+        windows)
+            echo -e "${GREEN}Windows: Kivy wheels include dependencies${NC}"
+            ;;
+    esac
+    
+    echo -e "${GREEN}✓ System dependencies installed${NC}"
+}
+
+# Function to check Kivy
+check_kivy() {
+    echo -e "${YELLOW}Checking Kivy installation...${NC}"
+    
+    # Try to import kivy using uv run
+    if uv run python -c "import kivy" 2>/dev/null; then
+        echo -e "${GREEN}✓ Kivy is installed${NC}"
+        KIVY_VERSION=$(uv run python -c "import kivy; print(kivy.__version__)")
+        echo -e "${GREEN}  Kivy version: $KIVY_VERSION${NC}"
     else
-        echo -e "${RED}✗ tkinter is not installed${NC}"
-        
-        case $OS in
-            linux)
-                echo -e "${YELLOW}To install tkinter, run:${NC}"
-                if [[ "$DISTRO" == "Ubuntu" ]] || [[ "$DISTRO" == "Debian" ]]; then
-                    echo "  sudo apt-get update && sudo apt-get install python3-tk"
-                elif [[ "$DISTRO" == "Fedora" ]] || [[ "$DISTRO" == "RedHat" ]]; then
-                    echo "  sudo dnf install python3-tkinter"
-                elif [[ "$DISTRO" == "Arch" ]]; then
-                    echo "  sudo pacman -S tk"
-                else
-                    echo "  Use your distribution's package manager to install python3-tk or python3-tkinter"
-                fi
-                ;;
-            macos)
-                echo -e "${YELLOW}tkinter should be included with Python.${NC}"
-                echo "Try installing Python from python.org or via Homebrew:"
-                echo "  brew install python-tk"
-                ;;
-            windows)
-                echo -e "${YELLOW}tkinter should be included with Python.${NC}"
-                echo "Reinstall Python from python.org with the standard installation"
-                ;;
-        esac
-        
-        read -p "Do you want to continue anyway? [y/N]: " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
+        echo -e "${YELLOW}Kivy is not installed. It will be installed with project dependencies.${NC}"
     fi
 }
 
@@ -158,11 +207,14 @@ setup_uv_project() {
         cat > pyproject.toml << 'EOF'
 [project]
 name = "network-designer"
-version = "1.0.0"
-description = "Visual Network to Terraform Converter"
+version = "2.0.0"
+description = "Visual Network to Docker/Terraform Converter"
 readme = "README.md"
 requires-python = ">=3.7"
-dependencies = []
+dependencies = [
+    "kivy>=2.2.0",
+    "kivymd>=1.1.0",
+]
 
 [project.scripts]
 network-designer = "network_designer:main"
@@ -177,7 +229,7 @@ dev-dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel", "cython>=0.29.0"]
 build-backend = "setuptools.build_meta"
 EOF
         echo -e "${GREEN}✓ pyproject.toml created${NC}"
@@ -191,11 +243,6 @@ EOF
         echo -e "${GREEN}✓ .python-version file created${NC}"
     fi
     
-    # Sync dependencies
-    echo -e "${YELLOW}Syncing dependencies with uv...${NC}"
-    uv sync
-    echo -e "${GREEN}✓ Dependencies synced${NC}"
-    
     # Create virtual environment if it doesn't exist
     if [ ! -d ".venv" ]; then
         echo -e "${YELLOW}Creating virtual environment...${NC}"
@@ -204,6 +251,16 @@ EOF
     else
         echo -e "${GREEN}✓ Virtual environment already exists${NC}"
     fi
+    
+    # Install dependencies including Kivy
+    echo -e "${YELLOW}Installing Python dependencies with uv...${NC}"
+    uv pip install kivy kivymd
+    echo -e "${GREEN}✓ Dependencies installed${NC}"
+    
+    # Sync any additional dependencies
+    echo -e "${YELLOW}Syncing project dependencies...${NC}"
+    uv sync
+    echo -e "${GREEN}✓ Dependencies synced${NC}"
 }
 
 # Function to create run script
@@ -270,7 +327,7 @@ create_shortcut() {
 Version=1.0
 Type=Application
 Name=Network Designer
-Comment=Visual Network to Terraform Converter
+Comment=Visual Network to Docker/Terraform Converter
 Exec=$PWD/run.sh
 Icon=$PWD/icon.png
 Terminal=false
@@ -297,7 +354,7 @@ EOF
 install_dev_deps() {
     echo -e "${YELLOW}Installing development dependencies...${NC}"
     
-    uv pip install --dev
+    uv pip install pytest pytest-cov black ruff mypy pyinstaller
     
     echo -e "${GREEN}✓ Development dependencies installed${NC}"
 }
@@ -345,7 +402,8 @@ uv run pyinstaller --onefile \
     --windowed \
     --name "NetworkDesigner" \
     --add-data "README.md:." \
-    --hidden-import tkinter \
+    --hidden-import kivy \
+    --hidden-import kivymd \
     network_designer.py
 
 echo "✓ Executable created in dist/NetworkDesigner"
@@ -452,7 +510,7 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <key>CFBundleIdentifier</key>
     <string>com.networkdesigner.app</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>2.0.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
@@ -516,7 +574,7 @@ $Shortcut = $WScriptShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = $TargetPath
 $Shortcut.WorkingDirectory = $WorkingDirectory
 $Shortcut.WindowStyle = 1
-$Shortcut.Description = "Visual Network to Terraform Converter"
+$Shortcut.Description = "Visual Network to Docker/Terraform Converter"
 $Shortcut.Save()
 
 Write-Host "✓ Windows shortcut created on Desktop" -ForegroundColor Green
@@ -576,6 +634,65 @@ EOF
     chmod +x uninstall.sh
 }
 
+# Create Kivy test script
+create_kivy_test() {
+    cat > test_kivy.py << 'EOF'
+#!/usr/bin/env python3
+"""Test script to verify Kivy installation"""
+
+import sys
+
+def test_kivy():
+    try:
+        import kivy
+        print(f"✓ Kivy {kivy.__version__} is installed and working")
+        
+        # Test Kivy App
+        from kivy.app import App
+        from kivy.uix.label import Label
+        
+        class TestApp(App):
+            def build(self):
+                return Label(text='Kivy is working!\nClose this window to continue.')
+        
+        # Only run GUI test if not in CI/headless environment
+        import os
+        if os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'):
+            print("Starting test window...")
+            TestApp().run()
+        else:
+            print("No display detected, skipping GUI test")
+            
+        return True
+        
+    except ImportError as e:
+        print(f"✗ Kivy import failed: {e}")
+        return False
+
+def test_kivymd():
+    try:
+        import kivymd
+        print(f"✓ KivyMD {kivymd.__version__} is installed")
+        return True
+    except ImportError:
+        print("ℹ KivyMD is not installed (optional)")
+        return True
+
+if __name__ == "__main__":
+    kivy_ok = test_kivy()
+    kivymd_ok = test_kivymd()
+    
+    if kivy_ok:
+        print("\n✓ All required dependencies are installed!")
+        sys.exit(0)
+    else:
+        print("\n✗ Some dependencies failed to install.")
+        sys.exit(1)
+EOF
+    
+    chmod +x test_kivy.py
+}
+
 # Main deployment process
 main() {
     echo ""
@@ -593,13 +710,16 @@ main() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         install_kivy_deps
+    else
+        echo -e "${YELLOW}Skipping system dependencies. You may need to install them manually.${NC}"
+        echo "Run ./install_kivy_deps.sh for comprehensive installation"
     fi
-    
-    # Check Kivy
-    check_kivy
     
     # Setup uv project
     setup_uv_project
+    
+    # Check Kivy
+    check_kivy
     
     # Create scripts
     create_run_script
@@ -609,6 +729,7 @@ main() {
     create_macos_app_script
     create_windows_shortcut_script
     create_uninstall_script
+    create_kivy_test
     
     # Ask about development dependencies
     read -p "Install development dependencies (testing, linting, building)? [y/N]: " -n 1 -r
@@ -632,10 +753,12 @@ main() {
     echo -e "${YELLOW}Available commands:${NC}"
     echo "  ./run.sh                 - Run the application"
     echo "  ./test.sh                - Run tests"
+    echo "  ./test_kivy.py           - Test Kivy installation"
     echo "  ./update.sh              - Update dependencies"
     echo "  ./shell.sh               - Activate environment shell"
     echo "  ./build_executable.sh    - Build standalone executable"
     echo "  ./install-package.sh     - Install additional packages"
+    echo "  ./install_kivy_deps.sh   - Install system dependencies (comprehensive)"
     echo "  ./uninstall.sh          - Uninstall the application"
     echo ""
     echo -e "${YELLOW}Using uv directly:${NC}"
@@ -644,6 +767,9 @@ main() {
     echo "  uv pip install <package>             - Install a package"
     echo "  uv sync                              - Sync dependencies"
     echo "  uv python list                       - List Python versions"
+    echo ""
+    echo -e "${YELLOW}Testing Kivy:${NC}"
+    echo "  python3 test_kivy.py                 - Test Kivy installation"
     echo ""
 }
 
